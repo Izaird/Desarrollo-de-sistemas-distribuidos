@@ -1,8 +1,9 @@
 import mysql.connector
+from getpass import getpass
 
-
-password = "m0th3l3td3lg4"
-user_db = "root"
+print("Introduzca usuario:")
+user_db = str(input())
+password = getpass("Introduzca su contraseña")
 
 mydb = mysql.connector.connect(
     host="localhost",
