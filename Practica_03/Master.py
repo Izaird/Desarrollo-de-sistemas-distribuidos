@@ -6,17 +6,20 @@ from time import sleep
 import threading
 import socket
 import mysql.connector
+from getpass import getpass
 
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = 'localhost'
-PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
+HOST = '10.100.74.46'
+PORT = 65000        # Port to listen on (non-privileged ports are > 1023)
 now = datetime.now() # Fecha y hora actuales
 random.seed(99)
+
+password = getpass("Introduzca su contraseña: ")
 
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="",
+    password=password,
     database="Central"
 )
 mycursor = mydb.cursor()

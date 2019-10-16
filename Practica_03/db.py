@@ -3,7 +3,7 @@ from getpass import getpass
 
 print("Introduzca usuario:")
 user_db = str(input())
-password = getpass("Introduzca su contraseña")
+password = getpass("Introduzca su contraseña:")
 
 mydb = mysql.connector.connect(
     host="localhost",
