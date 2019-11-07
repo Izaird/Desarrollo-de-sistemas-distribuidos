@@ -9,7 +9,7 @@ import random
 
 
 HOST = '192.168.43.167'  # The server's hostname or IP address
-PORT = 65000        # The port used by the server
+PORT = 65432        # The port used by the server
 random.seed(99)
 class clockClient:	#Clase Reloj
     def __init__(self, win, _x, _y ):
@@ -71,8 +71,8 @@ class clockClient:	#Clase Reloj
                 l = archivo.read(1024)
             archivo.close()
             print("Envio Completado")
-            s.shutdown(socket.SHUT_WR)
             print (s.recv(1024))
+            s.shutdown(socket.SHUT_WR)
             s.close
             #s.sendall(b'Hello, world')
             #data = s.recv(32)

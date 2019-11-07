@@ -4,11 +4,13 @@ from datetime import datetime
 import random
 from time import sleep
 import threading
-#import socket
-import socketio
-HOST = 'localhost'
-timePORT = 9090
+import socket
+HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 
+
+now = datetime.now() # Fecha y hora actuales
+random.seed(99)
 class clock:	#Clase Reloj
 	def __init__(self , isRandom):
 		if isRandom:
@@ -49,12 +51,23 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
 	def __init__(self, win, _x , _y): #win es la ventana en la cual colocaremos el reloj, _x y _y es la posicionamiento tipo grid
 		self.clk = clock(True) #Creamos un atributo del tipo clock
 		#win.title("Window")
-		self.total = 0
-		self.lblclk = Label(win, text="%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
-		self.lblclk.grid(row = _x , column = _y, columnspan=2)
-		self.lbltotal= Label(win, text="La suma de los elementos recibidos es: %d" %(self.total))
-		self.lbltotal.grid(row=_x+1, column=_y, columnspan=2)
-		self.t = threading.Thread(target=self.clk.start , args=(self.lblclk, ))
+		self.lbl = Label(win, text="%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
+		self.lbl.grid(row = _x , column = _y, columnspan=2)
+		self.btn = Button(win, text ="Modificar horas", command = lambda: self.popup_clock_config(win, 0)  )
+		self.btn.grid(row = _x+1, column = _y)
+		self.btn = Button(win, text ="Enviar horas", command = lambda: self.popup_clock_config(win, 0)  )
+		self.btn.grid(row = _x+1, column = _y+1)
+		self.btn = Button(win, text ="Modificar minutos", command = lambda: self.popup_clock_config(win, 1)  )
+		self.btn.grid(row = _x+2, column = _y)
+		self.btn = Button(win, text ="Enviar minutos", command = lambda: self.popup_clock_config(win, 1)  )
+		self.btn.grid(row = _x+2, column = _y+1)
+		self.btn = Button(win, text ="Modificar segundos", command = lambda: self.popup_clock_config(win, 2)  )
+		self.btn.grid(row = _x+3, column = _y)
+		self.btn = Button(win, text ="Enviar segundos", command = lambda: self.popup_clock_config(win, 2)  )
+		self.btn.grid(row = _x+3, column = _y+1)
+		self.btn = Button(win, text ="configurar segundero", command =lambda: self.popup_clock_config(win, 3)  )
+		self.btn.grid(row = _x+4, column = _y)
+		self.t = threading.Thread(target=self.clk.start , args=(self.lbl, ))
 		self.t.setDaemon(True)
 		self.t.start()
 	def setTimeGUI(self,horas, minutos, segundos): #Funcion que establece los valore del reloj
@@ -74,7 +87,7 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
 			else:
 				self.clk.secTimer = float(value)
 			self.clk.status=True
-			self.lblclk.config(text = "%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
+			self.lbl.config(text = "%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
 			win.destroy()
 	def popup_clock_config(self,win, ElemAModificar):#Funcion para la modificacion de los valores del reloj con GUI
 		self.clk.status=False	#Paramos el reloj
@@ -112,10 +125,33 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
 			#Timer = float_bin(int(entrada.get), 6)
 			b1 = Button(ven, text= "Cambiar Segundos", command= lambda: GUIClock.setTimeGUI_By_Selection(self,ven,entrada.get(),"t") )
 			b1.grid(row=2, column=0)
+
 	def onCloseWindow(self , window):
 		self.clk.status = True
 		window.destroy()
 
-sio = socketio.Server()
+def RunSocket(GUIclk):
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+		s.bind((HOST, PORT))
+		s.listen()
+		while(1):
+			conn, addr = s.accept()
+			with conn:
+				while(1):
+					query = conn.recv(1024)
+					if not query:
+						break
+					conn.sendall(b'%02d%02d%02d' % (GUIclk.clk.h , GUIclk.clk.m, GUIclk.clk.s)) #
+				print(b'%02d:%02d:%02d' % (GUIclk.clk.h , GUIclk.clk.m, GUIclk.clk.s))
+				print("AA")
 
-app = socketio.WSGIApp(sio)
+
+win = tk.Tk()
+
+win.geometry("530x200") #Tamaño de la aplicación
+#win.resizable(1,1)	#Esto permite a la app adaptarse al tamaño
+clk1 = GUIClock(win,0,0)	#iniciamos el reloj maestro en la posicion 0, 0
+ServerThread = threading.Thread(target=RunSocket , args=(clk1 , ))
+ServerThread.setDaemon(True)
+ServerThread.start()
+win.mainloop()
