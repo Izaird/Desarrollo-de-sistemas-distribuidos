@@ -32,13 +32,6 @@ from time import sleep
 IP = "192.168.0.9"
 PORT = 60432
 
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="Tiempo"
-)
-mycursor = mydb.cursor()
 listOfServers = []
 
 def toTime(num):
@@ -50,7 +43,7 @@ def toTime(num):
 	cadena += str(num)
 	return cadena
 
-    
+
 
 
 
@@ -188,7 +181,7 @@ class Comunicator:
     def __init__(self , clk1 , IPBackUp):
         self.backupEnable = False
         self.addr = ""
-        self.MasterStatus = False
+        self.MasterStatus = True
         RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , ))
         listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))
         turnOnBackUpThread = threading.Thread(target=self.turnOnBackUp , args=(IPBackUp,))
@@ -203,53 +196,48 @@ class Comunicator:
         listenTimeThread = threading.Thread(target=self.listenTime , args=(clk1,))
         listenTimeThread.setDaemon(True)
         listenTimeThread.start()
-    
-    
+        RunMasterThread.start()
+
+
     def pauseMaster(self):
         self.status=False
     def resumeMaster(self):
         self.status=True
-    def makeAjust(sock):
-    	prom = 0
-    	global listOfServers
-    	if(len(listOfServers) > 0):
-    		for x in listOfServers:
-    			print("[%s , %d]" % (x , PORT) )
-    			sock.sendto(b'GTM',(x,PORT))
-    			data , addr = sock.recvfrom(100)
-    			prom += int(data.decode('utf-8'))
-    			print(prom)
-    		prom = prom // len(listOfServers)
-    		MSG = "CTM " + str(prom)
-    		hora = toTime(prom)
-    		sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
-    		mycursor.execute(sqlformula,(hora,))
-    		mydb.commit()
-    		for x in listOfServers:
-    			sock.sendto(MSG.encode('utf-8'),(x,PORT))
-
+    def makeAjust(self,sock):
+        prom = 0
+        global listOfServers
+        if(len(listOfServers) > 0):
+            for x in listOfServers:
+                print("[%s , %d]" % (x , PORT) )
+                sock.sendto(b'GTM',(x,PORT))
+                print("Mandando solicitud de hora, esperando respuesta")
+                data , addr = sock.recvfrom(100)
+                prom += int(data.decode('utf-8'))
+                print(prom)
+            prom = prom // len(listOfServers)
+            MSG = "CTM " + str(prom)
+            hora = toTime(prom)
+            sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
+            mycursor.execute(sqlformula,(hora,))
+            mydb.commit()
+            for x in listOfServers:
+                sock.sendto(MSG.encode('utf-8'),(x,PORT))
     def startMaster(self):
         global listOfServers
-        while (1):
-            if(self.status==True):	#Status del reloj, sirve para pausarlo
+        while True:
+            if(self.MasterStatus==True):	#Status del reloj, sirve para pausarlo
                 sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
-                sock.bind((IP,PORT))
+                sock.bind((HOST,50900))
                 sock.settimeout(0.5)
-                x = input().split()
-                while(x[0] != "start"):
-                    if(x[0] == "add"):
-                        listOfServers.append(x[1])
-                    x = input().split()
-
-                    while True:
-                        try:
-                            print("Consulta")
-		                    makeAjust(sock)
-		                    sleep(int(x[1]))
-	                    except KeyboardInterrupt as k:
-                            break
-        else:
-            sleep(1)
+                while True:
+                    try:
+                        print("Consulta")
+                        self.makeAjust(sock)
+                        sleep(1)
+                    except KeyboardInterrupt as k:
+                        break
+            else:
+                sleep(1)
         x = input().split()
         while(x[0] != "start"):
         	if(x[0] == "add"):
@@ -361,8 +349,7 @@ class Comunicator:
                 sock.sendto(msg.encode('utf-8'),(addr))
             elif(cmdArgs[0] == "CTM"):
                 clk1.clk.setTimeFromNumber(int(cmdArgs[1]))
-            elif(cmdArgs[0] == "MIA"):
-                
+            #elif(cmdArgs[0] == "MIA"):
 
 win = tk.Tk()
 win.geometry("800x600") #Tamaño de la aplicación
