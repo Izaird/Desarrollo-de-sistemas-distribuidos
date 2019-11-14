@@ -23,8 +23,8 @@ def makeAjust(sock):
         global listOfServers
         if(len(listOfServers) > 0):
                 for x in listOfServers:
-                        print("[%s , %d]" % (x , PORT) )
-                        sock.sendto(b'GTM',(x,PORT))
+                        print("[%s , %d]" % (x , TIMEPORT) )
+                        sock.sendto(b'GTM',(x,TIMEPORT))
                         data , addr = sock.recvfrom(100)
                         prom += int(data.decode('utf-8'))
                         print(prom)
@@ -35,7 +35,7 @@ def makeAjust(sock):
                 mycursor_time.execute(sqlformula,(hora,))
                 mydb_time.commit()
                 for x in listOfServers:
-                #       print(()x , PORT)
+                #       print(()x , TIMEPORT)
                         sock.sendto(MSG.encode('utf-8'),(x,PORT))
 
 class clock:    #Clase Reloj
@@ -316,9 +316,13 @@ now = datetime.now() # Fecha y hora actuales
 random.seed(99)
 
 
+sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
+sock.bind((HOST,PORT))
+
 win = tk.Tk()
 win.geometry("800x600") #Tamaño de la aplicación
 #win.resizable(1,1)     #Esto permite a la app adaptarse al tamaño
 clk1 = GUIClock(win,0,0)        #iniciamos el reloj maestro en la posicion 0, 0
 com = Comunicator(clk1,BKHOST)
+
 win.mainloop()
