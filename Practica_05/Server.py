@@ -8,18 +8,18 @@ import socket
 import mysql.connector
 
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = '192.168.43.181'
-BKHOST = ""
+HOST = '192.168.43.40'
+BKHOST = "192.168.43."
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
-TIMEPORT = 60900
+TIMEPORT = 60432
 now = datetime.now() # Fecha y hora actuales
 random.seed(99)
 
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="Dragon",
+    password="root",
     database="Central"
 )
 mycursor = mydb.cursor()
@@ -160,7 +160,7 @@ class Comunicator:
         self.backupEnable = False
         self.addr = ""
         RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , ))
-        listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))
+        listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))		
         turnOnBackUpThread = threading.Thread(target=self.turnOnBackUp , args=(IPBackUp,))
         RunListenThread.setDaemon(True)
         turnOnBackUpThread.setDaemon(True)
@@ -184,7 +184,7 @@ class Comunicator:
                         s.sendto(b"ACKC" , (HOST , BCKPORT))
                 except EnvironmentError as e:
                     pass
-
+                
         sleep(0.01)
 
 

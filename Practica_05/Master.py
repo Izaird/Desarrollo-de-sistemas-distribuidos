@@ -2,8 +2,8 @@ import socket
 import mysql.connector
 from time import sleep
 
-IP = "192.168.0.9"
-PORT = 60432
+IP = "192.168.43.40"
+PORT = 60900
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -42,6 +42,7 @@ def makeAjust(sock):
 		mycursor.execute(sqlformula,(hora,))
 		mydb.commit()
 		for x in listOfServers:
+		#	print(()x , PORT)
 			sock.sendto(MSG.encode('utf-8'),(x,PORT))
 		
 
@@ -49,7 +50,7 @@ def makeAjust(sock):
 
 sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 sock.bind((IP,PORT))
-sock.settimeout(0.5)
+#sock.settimeout(0.5)
 x = input().split()
 while(x[0] != "start"):
 	if(x[0] == "add"):
