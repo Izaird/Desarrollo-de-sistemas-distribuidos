@@ -27,7 +27,10 @@ mycursor = mydb.cursor()
 sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
 
 listOfServers = ['192.168.43.167']
-listServswithPrio = [ ['192.168.43.167', 4], ['192.168.43.181', 5],['192.168.43.2', 1]]
+listServswithPrio = [ ['192.168.43.167', 4], ['192.168.43.181', 5],['127.0.0.1', 1]]
+listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
+print("Lista de servidores ordenados por prioridad: ")
+print(listServswithPrio)
 def toTime(num):
 	cadena = ""
 	cadena += str(num//10000)+":"
@@ -51,7 +54,7 @@ class clock:	#Clase Reloj
             self.secTimer = 1 #Valor del sleep para los segundos
         self.status = True
     def start(self , lbl):	#El thread de cada GUIClock llamara a esta funcion
-        while(1): #While true para que siempre cheque el status y actualice el reloj
+        while(1): #While True para que siempre cheque el status y actualice el reloj
             #print(self.status)
             if(self.status==True):	#Status del reloj, sirve para pausarlo
                 sleep(self.secTimer)	#Segun el valor del atributo secTimer es la pausa
@@ -192,11 +195,11 @@ class Comunicator:
     def ElectionSock(self,IPBackUp):
         global listOfServers
         global listServswithPrio
-        sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
-        print(listServswithPrio)
+        #listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
+        #print(listServswithPrio)
         sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
         sock.bind((HOST , ELECPORT))
-        sock.settimeout(2)
+        sock.settimeout(8)
         while True:
             try:
                 data , addr = sock.recvfrom(100)
@@ -215,8 +218,9 @@ class Comunicator:
                     sock.sendto(b"OK",(addr))
                 elif( cmdArgs[0] == "OKVi" ):
                     self.Election = False
-                    self.MasterStatus = true
+                    self.MasterStatus = True
                     print("victoria reconocida")
+                    sock.sendto(b"OK",(addr))
                     #self.RunMasterServThread.start
             except Exception as e: #En caso de timeout
                 #for x in listOfServers:
@@ -229,8 +233,8 @@ class Comunicator:
     def Bully(self, EleSocket):
         global listOfServers
         global listServswithPrio
-        listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
-        print(listServswithPrio)
+        #listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
+        #print(listServswithPrio)
         #Checar el primer elemento de la lista, deberia ser el de mayor prioridad
         if(self.prioridad >= listServswithPrio[0][1] ) :#Checamos si tenemos la prioridad mas alta
             #De ser asi, ganamos y mandamos un mensaje de victoria a todos los demas
