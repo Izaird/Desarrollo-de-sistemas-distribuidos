@@ -1,4 +1,5 @@
-from tkinter import *
+# from tkinter import *
+from tkinter import Label, Button, Toplevel, Entry
 import tkinter as tk
 from datetime import datetime
 import random
@@ -6,26 +7,38 @@ from time import sleep
 import threading
 import socket
 import mysql.connector
+from getpass import getpass
 
-#HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = '192.168.43.40'
-BKHOST = "192.168.43."
-PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
-BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
-TIMEPORT = 60432
-now = datetime.now() # Fecha y hora actuales
-random.seed(99)
+def toTime(num):
+        cadena = ""
+        cadena += str(num//10000)+":"
+        num -= (num//10000)*10000
+        cadena += str(num//100)+":"
+        num -= (num//100)*100
+        cadena += str(num)
+        return cadena
 
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="Central"
-)
-mycursor = mydb.cursor()
-sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
+def makeAjust(sock):
+        prom = 0 
+        global listOfServers
+        if(len(listOfServers) > 0):
+                for x in listOfServers:
+                        print("[%s , %d]" % (x , TIMEPORT) )
+                        sock.sendto(b'GTM',(x,TIMEPORT))
+                        data , addr = sock.recvfrom(100)
+                        prom += int(data.decode('utf-8'))
+                        print(prom)
+                prom = prom // len(listOfServers)
+                MSG = "CTM " + str(prom)
+                hora = toTime(prom)
+                sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
+                mycursor_time.execute(sqlformula,(hora,))
+                mydb_time.commit()
+                for x in listOfServers:
+                #       print(()x , TIMEPORT)
+                        sock.sendto(MSG.encode('utf-8'),(x,PORT))
 
-class clock:	#Clase Reloj
+class clock:    #Clase Reloj
     def __init__(self , isRandom):
         if isRandom:
             self.h = random.randint(0,23)
@@ -38,11 +51,11 @@ class clock:	#Clase Reloj
             self.s = int(now.strftime("%S"))
             self.secTimer = 1 #Valor del sleep para los segundos
         self.status = True
-    def start(self , lbl):	#El thread de cada GUIClock llamara a esta funcion
+    def start(self , lbl):      #El thread de cada GUIClock llamara a esta funcion
         while(1): #While true para que siempre cheque el status y actualice el reloj
             #print(self.status)
-            if(self.status==True):	#Status del reloj, sirve para pausarlo
-                sleep(self.secTimer)	#Segun el valor del atributo secTimer es la pausa
+            if(self.status==True):      #Status del reloj, sirve para pausarlo
+                sleep(self.secTimer)    #Segun el valor del atributo secTimer es la pausa
                 self.s += 1
                 if(self.s >= 60 ): #Reset de los segundos si se pasa de 60
                     self.s = 0
@@ -75,8 +88,7 @@ class clock:	#Clase Reloj
             sleep(2*x)
             self.secTimer = 1
 
-
-class GUIClock:		#La GUI del reloj estara definida en esta clase
+class GUIClock:         #La GUI del reloj estara definida en esta clase
     def __init__(self, win, _x , _y): #win es la ventana en la cual colocaremos el reloj, _x y _y es la posicionamiento tipo grid
         self.clk = clock(True) #Creamos un atributo del tipo clock
         #win.title("Window")
@@ -105,9 +117,9 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
     def setTimeGUI_By_Selection(self,win,value,type): #Funcion que establece los valore del reloj
         if len(value) > 0:
             if(type == "s"):
-                self.clk.s = int(value)	% 60
+                self.clk.s = int(value) % 60
             elif(type == "m"):
-                self.clk.m = int(value)	% 60
+                self.clk.m = int(value) % 60
             elif(type == "h"):
                 self.clk.h = int(value) % 24
             else:
@@ -116,27 +128,27 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
             self.lbl.config(text = "%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
             win.destroy()
     def popup_clock_config(self,win, ElemAModificar):#Funcion para la modificacion de los valores del reloj con GUI
-        self.clk.status=False	#Paramos el reloj
-        #ven = Toplevel()	#Creamos un ventana pop up
+        self.clk.status=False   #Paramos el reloj
+        #ven = Toplevel()       #Creamos un ventana pop up
         ven = Toplevel()
         ven.protocol("WM_DELETE_WINDOW", lambda window=ven : self.onCloseWindow(window))
         entrada=Entry(ven)
         entrada.grid(row=1, column=1)
-        if ElemAModificar == 0:				# 0 indica que actua sobre horas
+        if ElemAModificar == 0:                         # 0 indica que actua sobre horas
             label1 = Label(ven, text = 'Modificar Horas') #Colocamos labels y entries en la ventana pop up
             label1.grid(row=0, column=0, columnspan=2)
             labelHoras = Label(ven, text = 'Introduce las horas')
             labelHoras.grid(row=1, column=0)
             b1 = Button(ven, text= "Cambiar horas", command= lambda: GUIClock.setTimeGUI_By_Selection(self,ven,entrada.get(),"h") )
             b1.grid(row=2, column=0)
-        elif ElemAModificar == 1:	# 1 indica que actua sobre minutos
+        elif ElemAModificar == 1:       # 1 indica que actua sobre minutos
             label1 = Label(ven, text = 'Modificar Minutos')
             label1.grid(row=0, column=0, columnspan=2)
             labelminutos = Label(ven, text = 'Introduce los minutos que deseas')
             labelminutos.grid(row=1, column=0)
             b1 = Button(ven, text= "Cambiar Minutos", command= lambda: GUIClock.setTimeGUI_By_Selection(self,ven,entrada.get(),"m") )
             b1.grid(row=2, column=0)
-        elif ElemAModificar == 2:		# 2 indica que actua sobre segundos
+        elif ElemAModificar == 2:               # 2 indica que actua sobre segundos
             label1 = Label(ven, text = 'Modificar segundos')
             label1.grid(row=0, column=0, columnspan=2)
             labelSeg = Label(ven, text = 'Introduce los segundos que deseas')
@@ -150,17 +162,16 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
             labelSeg.grid(row=1, column=0)
             b1 = Button(ven, text= "Cambiar Segundos", command= lambda: GUIClock.setTimeGUI_By_Selection(self,ven,entrada.get(),"t") )
             b1.grid(row=2, column=0)
-
     def onCloseWindow(self , window):
         self.clk.status = True
         window.destroy()
 
 class Comunicator:
-    def __init__(self , clk1 , IPBackUp):
+    def __init__(self, clk1, IPBackUp):
         self.backupEnable = False
         self.addr = ""
         RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , ))
-        listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))		
+        listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))
         turnOnBackUpThread = threading.Thread(target=self.turnOnBackUp , args=(IPBackUp,))
         RunListenThread.setDaemon(True)
         turnOnBackUpThread.setDaemon(True)
@@ -172,7 +183,7 @@ class Comunicator:
         listenTimeThread.setDaemon(True)
         listenTimeThread.start()
 
-    def turnOnBackUp(self , IPBackUp):
+    def turnOnBackUp(self, IPBackUp):
 
         if (IPBackUp != ""):
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -187,8 +198,7 @@ class Comunicator:
                 
         sleep(0.01)
 
-
-    def listenBackUp(self , clk1):
+    def listenBackUp(self, clk1):
         global BKHOST
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.bind((HOST , BCKPORT))
@@ -200,15 +210,13 @@ class Comunicator:
                     BKHOST = self.addr[0]
         self.listenServer(clk1)
 
-    def listenServer(self , clk1):
+    def listenServer(self, clk1):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.bind((HOST , BCKPORT))
             while self.backupEnable:
                 data , x = s.recvfrom(1024)
                 args = data.decode('utf-8').split()
                 self.executeSQLInsert(args[0] , args[1] , args[2] , clk1)
-
-
 
     def RunSocket(self,GUIclk):
         totalData=0
@@ -223,7 +231,7 @@ class Comunicator:
                 l = conn.recv(1024)
                 while (l): #Mientras l reciva algo entrara en este loop
                     print("Recibiendo...")
-                    print(l)	#Recibiremos una cadena de bytes
+                    print(l)    #Recibiremos una cadena de bytes
                     #print (type(l))
                     listofData=l.split(b'\n') #Separamos la cadena de bytes por breaklines
                     print(listofData)#l ahora es una lista con cadenas de bytes
@@ -250,8 +258,6 @@ class Comunicator:
                         print(BKHOST)
                         sock.sendto(MGS.encode('utf-8') , (BKHOST , BCKPORT))
 
-
-
     def executeSQLInsert(self , totalData , ip , hour , GUIclk):
         outcome =  (totalData, ip, hour)
         mycursor.execute(sqlformula,outcome)
@@ -270,9 +276,53 @@ class Comunicator:
             elif(cmdArgs[0] == "CTM"):
                 clk1.clk.setTimeFromNumber(int(cmdArgs[1]))
 
+#obtenemos la ip donde esta corriendo el programa para no tener que ingresarla manualmente 
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+HOST = s.getsockname()[0]
+print(HOST)
+s.close()
+#Se pide la contrasenia de la base de datos
+password = getpass("Introduzca su contraseña:")
+#Coneccion a la base de datos y uso de Central
+mydb = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password=password,
+    database="Central"
+)
+mycursor = mydb.cursor()
+sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
+
+#Coneccion a la base de datos y uso de Time 
+mydb_time = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password=password,
+    database="Tiempo"
+)
+mycursor_time = mydb_time.cursor()
+
+#lista de las direcciones Ip de los servidores
+listOfServers = [HOST,"192.168.100.28"]
+
+
+BKHOST = "192.168.43."
+#Puerto 
+PORT = 62000        # Port to listen on (non-privileged ports are > 1023)
+BCKPORT = 62001        # Port to listen on (non-privileged ports are > 1023)
+TIMEPORT = 62002
+now = datetime.now() # Fecha y hora actuales
+random.seed(99)
+
+
+sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
+sock.bind((HOST,PORT))
+
 win = tk.Tk()
 win.geometry("800x600") #Tamaño de la aplicación
-#win.resizable(1,1)	#Esto permite a la app adaptarse al tamaño
-clk1 = GUIClock(win,0,0)	#iniciamos el reloj maestro en la posicion 0, 0
+#win.resizable(1,1)     #Esto permite a la app adaptarse al tamaño
+clk1 = GUIClock(win,0,0)        #iniciamos el reloj maestro en la posicion 0, 0
 com = Comunicator(clk1,BKHOST)
+
 win.mainloop()
