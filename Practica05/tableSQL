@@ -1,2 +1,0 @@
-create database Tiempo;
-Create table Tiempo (hora varchar(255),);
