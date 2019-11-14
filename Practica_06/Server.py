@@ -9,6 +9,35 @@ import socket
 import mysql.connector
 from getpass import getpass
 
+def toTime(num):
+        cadena = ""
+        cadena += str(num//10000)+":"
+        num -= (num//10000)*10000
+        cadena += str(num//100)+":"
+        num -= (num//100)*100
+        cadena += str(num)
+        return cadena
+
+def makeAjust(sock):
+        prom = 0 
+        global listOfServers
+        if(len(listOfServers) > 0):
+                for x in listOfServers:
+                        print("[%s , %d]" % (x , PORT) )
+                        sock.sendto(b'GTM',(x,PORT))
+                        data , addr = sock.recvfrom(100)
+                        prom += int(data.decode('utf-8'))
+                        print(prom)
+                prom = prom // len(listOfServers)
+                MSG = "CTM " + str(prom)
+                hora = toTime(prom)
+                sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
+                mycursor_time.execute(sqlformula,(hora,))
+                mydb_time.commit()
+                for x in listOfServers:
+                #       print(()x , PORT)
+                        sock.sendto(MSG.encode('utf-8'),(x,PORT))
+
 class clock:    #Clase Reloj
     def __init__(self , isRandom):
         if isRandom:
@@ -255,6 +284,7 @@ print(HOST)
 s.close()
 #Se pide la contrasenia de la base de datos
 password = getpass("Introduzca su contraseña:")
+#Coneccion a la base de datos y uso de Central
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -263,6 +293,18 @@ mydb = mysql.connector.connect(
 )
 mycursor = mydb.cursor()
 sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
+
+#Coneccion a la base de datos y uso de Time 
+mydb_time = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password=password,
+    database="Tiempo"
+)
+mycursor_time = mydb_time.cursor()
+
+#lista de las direcciones Ip de los servidores
+listOfServers = [HOST,"192.168.100.28"]
 
 
 BKHOST = "192.168.43."
