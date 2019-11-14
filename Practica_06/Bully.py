@@ -197,8 +197,8 @@ class Comunicator:
         sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
         sock.bind((HOST , ELECPORT))
         sock.settimeout(2)
-        try:
-            while True:
+        while True:
+            try:
                 data , addr = sock.recvfrom(100)
                 cmdArgs = data.decode('utf-8').split()
                 if(cmdArgs[0] == "OK"): #Latido del coordinador
@@ -218,11 +218,11 @@ class Comunicator:
                     self.MasterStatus = true
                     print("victoria reconocida")
                     #self.RunMasterServThread.start
-        except Exception as e: #En caso de timeout
-            #for x in listOfServers:
-            print("Exception en EleSocket")
-            print(e)
-            self.Bully(sock)
+            except Exception as e: #En caso de timeout
+                #for x in listOfServers:
+                print("Exception en EleSocket")
+                print(e)
+                self.Bully(sock)
 
 
 
@@ -240,6 +240,7 @@ class Comunicator:
                 if (HOST != listServswithPrio[k][0]):#Mandamos mensaje de victoria a todos menos a nostros mismos
                     msg="VIC"+HOST
                     EleSocket.sendto(msg.encode('utf-8'), (listServswithPrio[k][0], ELECPORT))
+                    return "victoria por mayor prioridad, servidores notificados"
         else:#En caso de no tener la prioridad mas alta
             for k in range(0,len(listServswithPrio)):#Loopeamos la lista por prioridad
                 if (self.prioridad>listServswithPrio[k][1]):#Mandaremos un mensaje a aquellos que tengan prioridad mas alta para saber si podemos ser coordinadores
