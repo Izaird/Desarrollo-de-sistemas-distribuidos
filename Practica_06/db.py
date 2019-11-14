@@ -15,6 +15,7 @@ mycursor = mydb.cursor()
 
 
 mycursor.execute("CREATE DATABASE IF NOT EXISTS Central")
+mycursor.execute("CREATE DATABASE IF NOT EXISTS Tiempo")
 mydb.cmd_reset_connection
 
 mydb2 = mysql.connector.connect(
@@ -28,3 +29,5 @@ mycursor = mydb2.cursor()
 
 
 mycursor.execute("CREATE TABLE IF NOT EXISTS Sumas (resultado INTEGER, ip VARCHAR(25), hora TIME)")
+mycursor.execute("USE Tiempo")
+mycursor.execute("CREATE TABLE IF NOT EXISTS Tiempo (hora varchar(255))")

@@ -9,8 +9,6 @@ import socket
 import mysql.connector
 from getpass import getpass
 
-
-
 class clock:    #Clase Reloj
     def __init__(self , isRandom):
         if isRandom:
@@ -135,13 +133,12 @@ class GUIClock:         #La GUI del reloj estara definida en esta clase
             labelSeg.grid(row=1, column=0)
             b1 = Button(ven, text= "Cambiar Segundos", command= lambda: GUIClock.setTimeGUI_By_Selection(self,ven,entrada.get(),"t") )
             b1.grid(row=2, column=0)
-
     def onCloseWindow(self , window):
         self.clk.status = True
         window.destroy()
 
 class Comunicator:
-    def __init__(self , clk1 , IPBackUp):
+    def __init__(self, clk1, IPBackUp):
         self.backupEnable = False
         self.addr = ""
         RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , ))
@@ -157,7 +154,7 @@ class Comunicator:
         listenTimeThread.setDaemon(True)
         listenTimeThread.start()
 
-    def turnOnBackUp(self , IPBackUp):
+    def turnOnBackUp(self, IPBackUp):
 
         if (IPBackUp != ""):
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -172,8 +169,7 @@ class Comunicator:
                 
         sleep(0.01)
 
-
-    def listenBackUp(self , clk1):
+    def listenBackUp(self, clk1):
         global BKHOST
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.bind((HOST , BCKPORT))
@@ -185,15 +181,13 @@ class Comunicator:
                     BKHOST = self.addr[0]
         self.listenServer(clk1)
 
-    def listenServer(self , clk1):
+    def listenServer(self, clk1):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.bind((HOST , BCKPORT))
             while self.backupEnable:
                 data , x = s.recvfrom(1024)
                 args = data.decode('utf-8').split()
                 self.executeSQLInsert(args[0] , args[1] , args[2] , clk1)
-
-
 
     def RunSocket(self,GUIclk):
         totalData=0
@@ -235,8 +229,6 @@ class Comunicator:
                         print(BKHOST)
                         sock.sendto(MGS.encode('utf-8') , (BKHOST , BCKPORT))
 
-
-
     def executeSQLInsert(self , totalData , ip , hour , GUIclk):
         outcome =  (totalData, ip, hour)
         mycursor.execute(sqlformula,outcome)
@@ -255,22 +247,14 @@ class Comunicator:
             elif(cmdArgs[0] == "CTM"):
                 clk1.clk.setTimeFromNumber(int(cmdArgs[1]))
 
-
+#obtenemos la ip donde esta corriendo el programa para no tener que ingresarla manualmente 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.connect(("8.8.8.8", 80))
 HOST = s.getsockname()[0]
 print(HOST)
 s.close()
+#Se pide la contrasenia de la base de datos
 password = getpass("Introduzca su contraseña:")
-
-
-BKHOST = "192.168.43."
-PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
-BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
-TIMEPORT = 60432
-now = datetime.now() # Fecha y hora actuales
-random.seed(99)
-
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -279,6 +263,16 @@ mydb = mysql.connector.connect(
 )
 mycursor = mydb.cursor()
 sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
+
+
+BKHOST = "192.168.43."
+#Puerto 
+PORT = 62000        # Port to listen on (non-privileged ports are > 1023)
+BCKPORT = 62001        # Port to listen on (non-privileged ports are > 1023)
+TIMEPORT = 62002
+now = datetime.now() # Fecha y hora actuales
+random.seed(99)
+
 
 win = tk.Tk()
 win.geometry("800x600") #Tamaño de la aplicación
