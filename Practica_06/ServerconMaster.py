@@ -32,7 +32,7 @@ from time import sleep
 IP = "192.168.0.9"
 PORT = 60432
 
-listOfServers = []
+listOfServers = ['192.168.43.167']
 
 def toTime(num):
 	cadena = ""
@@ -195,7 +195,7 @@ class Comunicator:
         turnOnBackUpThread.start()
         listenTimeThread = threading.Thread(target=self.listenTime , args=(clk1,))
         listenTimeThread.setDaemon(True)
-        listenTimeThread.start()
+        #listenTimeThread.start()
         RunMasterThread.start()
 
 
@@ -227,8 +227,8 @@ class Comunicator:
         while True:
             if(self.MasterStatus==True):	#Status del reloj, sirve para pausarlo
                 sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
-                sock.bind((HOST,50900))
-                sock.settimeout(0.5)
+                sock.bind((HOST,TIMEPORT))
+                #sock.settimeout(0.5)
                 while True:
                     try:
                         print("Consulta")
