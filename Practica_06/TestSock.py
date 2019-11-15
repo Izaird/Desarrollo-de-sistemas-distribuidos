@@ -4,7 +4,7 @@ import socket
 #Script para probar comportamineto del server al mandarle ciertos mensajes
 LOCALHOST = '127.0.0.1'
 #IPTested = str(input("Direccion a la que deseas hacer pruebas"))
-IPTested = '10.100.74.22'
+IPTested = '192.168.0.15'
 PORT = 65432        # Puerto de jugador, para enviar y recibir la lista de numeros
 BCKPORT = 65433        # Puerto para sincronizacion de BDD entre servidores
 TIMEPORT = 60900    #Puerto de sincronizacion de reloj

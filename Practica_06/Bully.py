@@ -8,8 +8,8 @@ import socket
 import mysql.connector
 
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = '10.100.74.22'
-BKHOST = "192.168.43."
+HOST = '192.168.0.15'
+BKHOST = "192.168.0.7"
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
 TIMEPORT = 60900
@@ -26,8 +26,8 @@ mydb = mysql.connector.connect(
 mycursor = mydb.cursor()
 sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
 
-listOfServers = ['192.168.43.167']
-listServswithPrio = [ ['192.168.43.167', 4], ['192.168.43.181', 5],['127.0.0.1', 1]]
+listOfServers = ['192.168.0.15']
+listServswithPrio = [ ['192.168.0.15', 10], ['192.168.0.7', 5],['127.0.0.1', 1]]
 listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
 print("Lista de servidores ordenados por prioridad: ")
 print(listServswithPrio)
@@ -199,40 +199,66 @@ class Comunicator:
         #print(listServswithPrio)
         sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
         sock.bind((HOST , ELECPORT))
-        sock.settimeout(8)
+        sock.settimeout(6)
         while True:
-            try:
-                data , addr = sock.recvfrom(100)
-                cmdArgs = data.decode('utf-8').split()
-                if(cmdArgs[0] == "OK"): #Latido del coordinador
-                    #msg = str(clk1.clk.getTimeToNumber())
-                    #sock.sendto(msg.encode('utf-8'),(addr))
-                    sock.sendto(b"OK",(addr))#Regresamos un ok para indicar que funcionamos
-                elif(cmdArgs[0] == "ELECT"):#Recibimos notificacion de un proceso de eleccion
-                    self.Election = True
+            if(self.MasterStatus == True):#Si somos coordinador de tiempo mandamos pulsos a todos
+                print("Soy Coordinador")
+                sock.settimeout(2)#Si no responden en 2 s, no nos importa, continuamos mandando pulsos a los demas
+                for x in range(0,len(listServswithPrio)):
+                    if ( HOST != listServswithPrio[x][0]):
+                        print("Mandando Latido a: " + listServswithPrio[x][0])
+                        sock.sendto(b"OK", ( listServswithPrio[x][0], ELECPORT ))
+                        try:#Esperamos respuesta
+                            data , addr = sock.recvfrom(100)
+                            cmdArgs = data.decode('utf-8').split()
+                            if(cmdArgs[0] == "ELECT"):#Estamos atentos a si comienza un proceso de eleccion
+                                self.Election = True
+                                self.MasterStatus = False
+                                print("Mensaje de eleccion recibido")
+                                self.Bully(sock)
+                        except Exception as e:#En caso de error (principalmente timeot)
+                            print("Exception en EleSocket")#Notificamos el error
+                            print(e)#Continuamos mandando latidos y esperando respuesta
+                            continue
+
+
+            else:
+                try:
+                    data , addr = sock.recvfrom(100)
+                    cmdArgs = data.decode('utf-8').split()
+                    if(cmdArgs[0] == "OK"): #Latido del coordinador
+                        #msg = str(clk1.clk.getTimeToNumber())
+                        #sock.sendto(msg.encode('utf-8'),(addr))
+                        sock.sendto(b"OK",(addr))#Regresamos un ok para indicar que funcionamos
+                    elif(cmdArgs[0] == "ELECT"):#Recibimos notificacion de un proceso de eleccion
+                        self.Election = True
+                        print("Mensaje de eleccion recibido")
+                        self.Bully(sock)
+                    elif(cmdArgs[0] == "VIC"):#Mensaje de vencedor de eleccion
+                        print(addr)#imprimir ip del vencedor
+                        sock.sendto(b"OKVi",(addr))
+                    elif(cmdArgs[0] == "MYPR"):#En caso de recibir un mensaje de prioridad, este deberia ser de un serv con menor prio por lo que hay que responder
+                        print("Recibido mensaje de prioridad mayor")
+                        sock.sendto(b"OK",(addr))
+                    elif( cmdArgs[0] == "OKVi" ):
+                        self.Election = False
+                        self.MasterStatus = True
+                        print("victoria reconocida")
+                        sock.sendto(b"OK",(addr))
+                        #self.RunMasterServThread.start
+                except Exception as e: #En caso de timeout
+                    print("Exception en EleSocket")
+                    print(e)
                     self.Bully(sock)
-                elif(cmdArgs[0] == "VIC"):#Mensaje de vencedor de eleccion
-                    print(addr)#imprimir ip del vencedor
-                    sock.sendto(b"OKVi",(addr))
-                elif(cmdArgs[0] == "MyPr"):#En caso de recibir un mensaje de prioridad, este deberia ser de un serv con menor prio por lo que hay que responder
-                    sock.sendto(b"OK",(addr))
-                elif( cmdArgs[0] == "OKVi" ):
-                    self.Election = False
-                    self.MasterStatus = True
-                    print("victoria reconocida")
-                    sock.sendto(b"OK",(addr))
-                    #self.RunMasterServThread.start
-            except Exception as e: #En caso de timeout
-                #for x in listOfServers:
-                print("Exception en EleSocket")
-                print(e)
-                self.Bully(sock)
 
 
 
     def Bully(self, EleSocket):
         global listOfServers
         global listServswithPrio
+        self.ElectionStatus = True
+        self.MasterStatus = False
+        print("Entrando a proceso de Elecciones")
         #listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
         #print(listServswithPrio)
         #Checar el primer elemento de la lista, deberia ser el de mayor prioridad
@@ -241,15 +267,16 @@ class Comunicator:
             BanderaVictoria=True
             print("Soy el de mayor prioridad")
             for k in range(0,len(listServswithPrio)):
-                if (HOST != listServswithPrio[k][0]):#Mandamos mensaje de victoria a todos menos a nostros mismos
+                if ( HOST != listServswithPrio[k][0] ):#Mandamos mensaje de victoria a todos menos a nostros mismos
                     msg="VIC"+HOST
+                    print("Mandando Mensaje de Victoria a: " + listServswithPrio[k][0])
                     EleSocket.sendto(msg.encode('utf-8'), (listServswithPrio[k][0], ELECPORT))
                     return "victoria por mayor prioridad, servidores notificados"
         else:#En caso de no tener la prioridad mas alta
             for k in range(0,len(listServswithPrio)):#Loopeamos la lista por prioridad
                 if (self.prioridad>listServswithPrio[k][1]):#Mandaremos un mensaje a aquellos que tengan prioridad mas alta para saber si podemos ser coordinadores
                     try:
-                        msg = "MyPr" + str(self.prioridad) #Mensaje de prioridad que mandaremos a aquellos con mator prio
+                        msg = "MYPR" + str(self.prioridad) #Mensaje de prioridad que mandaremos a aquellos con mator prio
                         EleSocket.sendto(msg.encode('utf-8'),(addr))
                     except Exception as e:
                         print(e)
