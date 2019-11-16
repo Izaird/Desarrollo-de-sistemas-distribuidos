@@ -184,6 +184,9 @@ class Comunicator:
 		self.turnOnBackUpThread = threading.Thread(target=self.turnOnBackUp , args=(IPBackUp,))
 		self.RunElectionThread = threading.Thread(target=self.ElectionSock , args=(IPBackUp,))#Socket/hilo para los procesos de eleccion de cooridinador
 		self.RunElectionThread.setDaemon(True)
+		self.listenTimeThread = threading.Thread(target=self.listenTime , args=(clk1,))#sincronizacion de reloj
+		self.listenTimeThread.setDaemon(True)
+		self.listenTimeThread.start()
 		self.RunListenThread.setDaemon(True)
 		self.turnOnBackUpThread.setDaemon(True)
 		self.listenBCKThread.setDaemon(True)
@@ -191,9 +194,39 @@ class Comunicator:
 		self.RunListenThread.start()# manejador de jugadores
 		self.listenBCKThread.start()
 		self.turnOnBackUpThread.start()
-		self.listenTimeThread = threading.Thread(target=self.listenTime , args=(clk1,))#sincronizacion de reloj
-		self.listenTimeThread.setDaemon(True)
-		self.listenTimeThread.start()
+	
+	def makeAjust(self, sock, clk1):
+		prom = 0
+		global listServswithPrio
+		TMSG=""
+		if( self.MasterStatus == True ):
+			print("Empezando Consulta")
+			for x in range(0,len(listServswithPrio)):
+				if (HOST != listServswithPrio[x][0]):
+					print("[%s , %d]" % (listServswithPrio[x][0] , PORT) )
+					print("Pidiendo hora")
+					sock.sendto(b'GTM',(listServswithPrio[x][0],PORT))
+					try:
+						data , addr = sock.recvfrom(100)
+						prom += int(data.decode('utf-8'))
+						print(prom)
+					except socket.timeout as e:
+						#print(e)
+						prom += int( clk1.clk.getTimeToNumber())
+						continue
+					prom = prom // len(listOfServers)
+					print("Promedio del tiempo = ",prom)
+					TMSG = "CTM " + str(prom)
+					hora = toTime(prom)
+					"""sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
+					mycursor.execute(sqlformula,(hora,))
+					mydb.commit()"""
+			for j in range(0,len(listServswithPrio)):
+				if (HOST != listServswithPrio[x][0] ):
+					print("Mandando ajuste a: "+listServswithPrio[j][0])
+					print("Promedio    ", prom)
+					sock.sendto(TMSG.encode('utf-8'),(listServswithPrio[j][0],PORT))
+
 	def ElectionSock(self,IPBackUp):
 		global listOfServers
 		global listServswithPrio
@@ -213,58 +246,64 @@ class Comunicator:
 						try:#Esperamos respuesta
 							data , addr = sock.recvfrom(100)
 							cmdArgs = data.decode('utf-8').split()
-							if(cmdArgs[0] == "ELECT"):#Estamos atentos a si comienza un proceso de eleccion
-								self.Election = True
-								self.MasterStatus = False
-								print("Mensaje de eleccion recibido")
-								self.Bully(sock)
 						except Exception as e:#En caso de error (principalmente timeot)
-							print("Exception en EleSocket")#Notificamos el error
+							print("Exception en EleSocket Coordinador")#Notificamos el error
 							print(e)#Continuamos mandando latidos y esperando respuesta
 							continue
-
-			try:
-				data , addr = sock.recvfrom(100)
-				cmdArgs = data.decode('utf-8').split()
-				print(cmdArgs)
-				if(cmdArgs[0] == "OK"): #Latido del coordinador
-					#msg = str(clk1.clk.getTimeToNumber())
-					#sock.sendto(msg.encode('utf-8'),(addr))
-					sock.sendto(b"OK",(addr))#Regresamos un ok para indicar que funcionamos
-				elif(cmdArgs[0] == "ELECT"):#Recibimos notificacion de un proceso de eleccion
-					self.Election = True
-					print("Mensaje de eleccion recibido")
-					self.Bully(sock)
-				elif(cmdArgs[0] == "VIC"):#Mensaje de vencedor de eleccion
-					#print(addr)#imprimir ip del vencedor
-					sock.sendto(b"OKVi",(addr))
-				elif(cmdArgs[0] == "MYPR"):#En caso de recibir un mensaje de prioridad, este deberia ser de un serv con menor prio por lo que hay que responder
-					print("Recibido mensaje de prioridad mayor")
-					sock.sendto(b"NO "+ self.prioridad ,(addr))
-				elif( cmdArgs[0] == "NO" ):
-					print("Respuesta de servidor con mayor prio")
-					if (self.prioCount <= 0):
-						self.prioCount = 0
-					else:
-						self.prioCount = self.prioCount - int(cmdArgs[1]) 
-				elif( cmdArgs[0] == "OKVi" ):
-					self.Election = False
-					self.MasterStatus = True
-					print("victoria reconocida")
-					sock.sendto(b"OK",(addr))
-					#self.RunMasterServThread.start
-			except socket.timeout as e: #En caso de timeout
-				print("Exception en EleSocket")
-				print(e)
-				if ( self.prioCount > 0 ):
-					print("No se recibio respuesta de algun server con mayor prio, ganamos elecciones ")
-					for x in range(0,len(listServswithPrio)):
-						if ( HOST != listServswithPrio[x][0]):
-							print("Mandando Victoria a: " + listServswithPrio[x][0])
-							sock.sendto(b"VIC", ( listServswithPrio[x][0], ELECPORT ))
-				else:			
-					self.Bully(sock)
-				continue
+						if(cmdArgs[0] == "ELECT"):#Estamos atentos a si comienza un proceso de eleccion
+							self.Election = True
+							self.MasterStatus = False
+							print("Mensaje de eleccion recibido")
+							self.Bully(sock)
+						
+			else:
+				try:
+					data , addr = sock.recvfrom(100)
+					cmdArgs = data.decode('utf-8').split()
+					print(cmdArgs)
+					if(cmdArgs[0] == "OK"): #Latido del coordinador
+						#msg = str(clk1.clk.getTimeToNumber())
+						#sock.sendto(msg.encode('utf-8'),(addr))
+						self.ElectionStatus= False
+						sock.sendto(b"OK",(addr))#Regresamos un ok para indicar que funcionamos
+					elif(cmdArgs[0] == "ELECT"):#Recibimos notificacion de un proceso de eleccion
+						self.Election = True
+						self.MasterStatus = False
+						print("Mensaje de eleccion recibido")
+						self.Bully(sock)
+					elif(cmdArgs[0] == "VIC"):#Mensaje de vencedor de eleccion
+						#print(addr)#imprimir ip del vencedor
+						self.Election = False
+						sock.sendto(b"OKVi",(addr))
+					elif(cmdArgs[0] == "MYPR"):#En caso de recibir un mensaje de prioridad, este deberia ser de un serv con menor prio por lo que hay que responder
+						print("Recibido mensaje de prioridad mayor")
+						sock.sendto(b"NO "+ self.prioridad ,(addr))
+					elif( cmdArgs[0] == "NO" ):
+						print("Respuesta de servidor con mayor prio")
+						self.MasterStatus=False
+						if (self.prioCount <= 0):
+							self.prioCount = 0
+						else:
+							self.prioCount = self.prioCount - int(cmdArgs[1]) 
+					elif( cmdArgs[0] == "OKVi" ):
+						self.Election = False
+						self.MasterStatus = True
+						print("victoria reconocida")
+						sock.sendto(b"OK",(addr))
+				except socket.timeout as e: #En caso de timeout
+					print("Exception en EleSocket")
+					print(e)
+					print("Prioridad: ")
+					print(self.prioCount)
+					if ( self.prioCount > 0 and self.ElectionStatus == True):
+						print("No se recibio respuesta de algun server con mayor prio, ganamos elecciones ")
+						for x in range(0,len(listServswithPrio)):
+							if ( HOST != listServswithPrio[x][0]):
+								print("Mandando Victoria a: " + listServswithPrio[x][0])
+								sock.sendto(b"VIC", ( listServswithPrio[x][0], ELECPORT ))
+					#elif():			
+					#	self.Bully(sock)
+					continue
 
 
 
@@ -301,34 +340,7 @@ class Comunicator:
 						continue"""
 
 
-	def makeAjust(self, sock):
-		prom = 0
-		global listServswithPrio
-		if( self.MasterStatus == True ):
-			for x in range(0,len(listServswithPrio)):
-				#HOla
-				print("Hola")
-				if (HOST != listServswithPrio[x][0]):
-					print("[%s , %d]" % (listServswithPrio[x][0] , PORT) )
-					print("Pidiendo hora")
-					sock.sendto(b'GTM',(listServswithPrio[x][0],PORT))
-					try:
-						data , addr = sock.recvfrom(100)
-						prom += int(data.decode('utf-8'))
-						print(prom)
-					except Exception as e:
-						print(e)
-						continue
-					prom = prom // len(listOfServers)
-					MSG = "CTM " + str(prom)
-					hora = toTime(prom)
-					"""sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
-					mycursor.execute(sqlformula,(hora,))
-					mydb.commit()"""
-			for j in range(0,len(listServswithPrio)):
-				if (HOST != listServswithPrio[x][0] ):
-					print("Mandando ajuste a: "+listServswithPrio[j][0])
-					sock.sendto(MSG.encode('utf-8'),(listServswithPrio[j][0],PORT))
+	
 
 	def turnOnBackUp(self , IPBackUp):
 
@@ -419,23 +431,35 @@ class Comunicator:
 	def listenTime(self , clk1):#Socket e hilo para la sincronizacion de reloj
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 		sock.bind((HOST , TIMEPORT))
+		sock.settimeout(2)
+		print("Time thread empezando")
 		while True:
+			print(self.ElectionStatus,self.MasterStatus)
 			if ( self.ElectionStatus == False and self.MasterStatus == False ):
-				data , addr = sock.recvfrom(100)
-				cmdArgs = data.decode('utf-8').split()
-				if(cmdArgs[0] == "GTM"): #si llega este mensaje
-					msg = str(clk1.clk.getTimeToNumber())#Mandar hora
-					sock.sendto(msg.encode('utf-8'),(addr))
-				elif(cmdArgs[0] == "CTM"):#Si llega este mensaje
-					clk1.clk.setTimeFromNumber(int(cmdArgs[1]))#Ajustar reloj
+				try:
+					data , addr = sock.recvfrom(100)
+					cmdArgs = data.decode('utf-8').split()
+					if(cmdArgs[0] == "GTM"): #si llega este mensaje
+						msg = str(clk1.clk.getTimeToNumber())#Mandar hora
+						sock.sendto(msg.encode('utf-8'),(addr))
+					elif(cmdArgs[0] == "CTM"):#Si llega este mensaje
+						clk1.clk.setTimeFromNumber(int(cmdArgs[1]))#Ajustar reloj
+				except socket.timeout as e:
+					print("Timeout in listentime")
+				
 			elif( self.MasterStatus == True and self.ElectionStatus == False):
 				try:
 					print("Consulta")
-					makeAjust(sock)
-					sleep(2)
-				except KeyboardInterrupt as k:
-					break
-				
+					self.makeAjust(sock, clk1)
+					sleep(1)
+				except Exception as e:
+					print(e)
+					print("EXception in timeSOck")
+					continue	
+			else:
+				self.ElectionStatus = False
+				sleep(1)
+
 
 
 
