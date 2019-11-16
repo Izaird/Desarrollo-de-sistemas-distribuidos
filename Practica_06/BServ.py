@@ -8,8 +8,8 @@ import socket
 import mysql.connector
 
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = '10.100.68.151'
-BKHOST = "10.100.76.183"
+HOST = "10.100.76.183"
+BKHOST = '10.100.68.151'
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
 TIMEPORT = 60900
@@ -20,7 +20,7 @@ random.seed(99)
 mydb = mysql.connector.connect(
 	host="localhost",
 	user="root",
-	password="root1234",
+	password="root123",
 	database="Central"
 )
 mycursor = mydb.cursor()
@@ -177,7 +177,7 @@ class Comunicator:
 		self.MasterStatus = False
 		self.ElectionStatus = False  #Election satus sera una bandera False para no hay eleccion True para indicar que esta en proceso
 		self.addr = ""
-		self.prioridad= 10    #A mayor prio, mas preferente para ser coordinador de tiempo
+		self.prioridad= 5    #A mayor prio, mas preferente para ser coordinador de tiempo
 		self.prioCount = 0	#Contador para saber si recibimos respuesta de un server con mayor prioridad
 		self.RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , ))
 		self.listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))
@@ -395,39 +395,42 @@ class Comunicator:
 			s.bind((HOST, PORT))#Publicamos la ip y puerto
 			s.listen(4)#Aceptaremos maximo 4 conexiones
 			while True:#Loop infinito para siempre estar escucahndo al puerto especificado
-				conn, addr = s.accept() #Aceptar la conexion
-				print(f"Conection desde {addr} ha sido establecida")
-				conn.send(bytes("Conectado a servidor", "utf-8"))
-				totalData=0
-				l = conn.recv(1024)
-				while (l): #Mientras l reciva algo entrara en este loop
-					print("Recibiendo...")
-					print(l)	#Recibiremos una cadena de bytes
-					#print (type(l))
-					listofData=l.split(b'\n') #Separamos la cadena de bytes por breaklines
-					print(listofData)#l ahora es una lista con cadenas de bytes
-					for i in range(0, len(listofData)):
-						if ( listofData[i].decode("utf-8")=='' ):
-							listofData[i]=0
-						else:
-							listofData[i] = int(listofData[i].decode("utf-8") ) #se decodifica y castea a entero
-						totalData = listofData[i]+totalData#Sacar suma de los datos recibidos
-						print(totalData)
-					print(listofData)
+				if (self.ElectionStatus == False and self.MasterStatus == False):
+					conn, addr = s.accept() #Aceptar la conexion
+					print(f"Conection desde {addr} ha sido establecida")
+					conn.send(bytes("Conectado a servidor", "utf-8"))
+					totalData=0
 					l = conn.recv(1024)
-				print("Termine de recibir")#Notificar que se termino de recibir data
-				conn.send(b'Envio Completado')#Mandar mensaje al jugador
-				conn.close()
-				GUIclk.total = totalData
-				hour = str(GUIclk.clk.h).zfill(2) + ":" +str(GUIclk.clk.m).zfill(2)+ ":" +str(GUIclk.clk.s).zfill(2)
-				ip = addr[0]
+					while (l): #Mientras l reciva algo entrara en este loop
+						print("Recibiendo...")
+						print(l)	#Recibiremos una cadena de bytes
+						#print (type(l))
+						listofData=l.split(b'\n') #Separamos la cadena de bytes por breaklines
+						print(listofData)#l ahora es una lista con cadenas de bytes
+						for i in range(0, len(listofData)):
+							if ( listofData[i].decode("utf-8")=='' ):
+								listofData[i]=0
+							else:
+								listofData[i] = int(listofData[i].decode("utf-8") ) #se decodifica y castea a entero
+							totalData = listofData[i]+totalData#Sacar suma de los datos recibidos
+							print(totalData)
+						print(listofData)
+						l = conn.recv(1024)
+					print("Termine de recibir")#Notificar que se termino de recibir data
+					conn.send(b'Envio Completado')#Mandar mensaje al jugador
+					conn.close()
+					GUIclk.total = totalData
+					hour = str(GUIclk.clk.h).zfill(2) + ":" +str(GUIclk.clk.m).zfill(2)+ ":" +str(GUIclk.clk.s).zfill(2)
+					ip = addr[0]
 
-				self.executeSQLInsert(str(totalData) , ip , hour , GUIclk)#Guardar datos
-				if(self.backupEnable):  #Mandar al otro server para consistencia
-					MGS = str(totalData) + " " + str(ip) + " " + str(hour)
-					with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-						print(BKHOST)
-						sock.sendto(MGS.encode('utf-8') , (BKHOST , BCKPORT))
+					self.executeSQLInsert(str(totalData) , ip , hour , GUIclk)#Guardar datos
+					if(self.backupEnable):  #Mandar al otro server para consistencia
+						MGS = str(totalData) + " " + str(ip) + " " + str(hour)
+						with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+							print(BKHOST)
+							sock.sendto(MGS.encode('utf-8') , (BKHOST , BCKPORT))
+				else:
+					sleep(1.25)
 
 
 
