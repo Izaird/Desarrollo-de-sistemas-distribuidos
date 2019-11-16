@@ -8,8 +8,8 @@ import socket
 import mysql.connector
 
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = '10.100.76.183'
-BKHOST = "10.100.68.151"
+HOST = '10.100.68.151'
+BKHOST = "10.100.76.183"
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
 TIMEPORT = 60900
@@ -20,7 +20,7 @@ random.seed(99)
 mydb = mysql.connector.connect(
 	host="localhost",
 	user="root",
-	password="root123",
+	password="root1234",
 	database="Central"
 )
 mycursor = mydb.cursor()
@@ -177,7 +177,7 @@ class Comunicator:
 		self.MasterStatus = False
 		self.ElectionStatus = False  #Election satus sera una bandera False para no hay eleccion True para indicar que esta en proceso
 		self.addr = ""
-		self.prioridad= 5    #A mayor prio, mas preferente para ser coordinador de tiempo
+		self.prioridad= 10    #A mayor prio, mas preferente para ser coordinador de tiempo
 		self.prioCount = 0	#Contador para saber si recibimos respuesta de un server con mayor prioridad
 		self.RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , ))
 		self.listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, ))
@@ -291,11 +291,20 @@ class Comunicator:
 						print("victoria reconocida")
 						sock.sendto(b"OK",(addr))
 				except socket.timeout as e: #En caso de timeout
+					self.prioCount = self.prioCount + 1
 					print("Exception en EleSocket")
 					print(e)
 					print("Prioridad: ")
 					print(self.prioCount)
-					if ( self.prioCount > 0 and self.ElectionStatus == True):
+					if ( self.prioridad >= listServswithPrio[0][1]):
+						for x in range(0,len(listServswithPrio)):
+							if ( HOST != listServswithPrio[x][0]):
+								sock.sendto(b"VIC",(listServswithPrio[x][0], ELECPORT))
+					elif( self.prioCount > self.prioridad):
+						for x in range(0,len(listServswithPrio)):
+							if ( HOST != listServswithPrio[x][0]):
+								sock.sendto(b"ELECT",(listServswithPrio[x][0], ELECPORT))
+					else:
 						print("No se recibio respuesta de algun server con mayor prio, ganamos elecciones ")
 						for x in range(0,len(listServswithPrio)):
 							if ( HOST != listServswithPrio[x][0]):
