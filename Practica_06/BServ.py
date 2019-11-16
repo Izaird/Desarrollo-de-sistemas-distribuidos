@@ -7,8 +7,12 @@ import threading
 import socket
 import mysql.connector
 
+#obtenemos la ip donde esta corriendo el programa para no tener que ingresarla manualmente 
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+HOST = s.getsockname()[0]
+print(HOST)
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-HOST = '10.100.68.151'
 BKHOST = "10.100.76.183"
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
