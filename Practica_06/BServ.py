@@ -13,7 +13,7 @@ s.connect(("8.8.8.8", 80))
 HOST = s.getsockname()[0]
 print(HOST)
 #HOST = '127.0.0.1'   Standard loopback interface address (localhost)
-BKHOST = "10.100.68.151"
+BKHOST = ""
 PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
 TIMEPORT = 60900
@@ -31,7 +31,7 @@ mycursor = mydb.cursor()
 sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
 
 listOfServers = ['192.168.0.15']
-listServswithPrio = [ ['10.100.76.183', 5], ['10.100.68.151', 10],['127.0.0.1', 1]]
+listServswithPrio = [ [HOST, 5], ['192.168.43.167', 10],['127.0.0.1', 1]]
 listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
 print("Lista de servidores ordenados por prioridad: ")
 print(listServswithPrio)
@@ -80,20 +80,25 @@ class clock:	#Clase Reloj
 	def resumeClock(self):
 		self.status=True
 	def getTimeToNumber(self):
-		return self.h*10000+self.m*100+self.s
+		return self.h*3600+self.m*60+self.s
 	def setTimeFromNumber(self,num):
 		x = self.getTimeToNumber()
-		if x <= num:
-			self.h = num//10000
-			num -= self.h*10000
-			self.m = num//100
-			num -= self.m*100
-			self.s = num
-		else:
+		print("Hora actual en s: ",x)
+		print("Hora recibida en s: ", num)
+		if int(num) <= int(x):
 			x -= num
 			self.secTimer = 3
 			sleep(2*x)
 			self.secTimer = 1
+
+		else:
+			horas = str(datetime.timedelta(seconds=int(num)))
+			print(horas)
+			horas.split(':')
+			self.h = h[0]
+			self.m = h[1]
+			self.s = h[2]
+
 
 
 class GUIClock:		#La GUI del reloj estara definida en esta clase
@@ -226,7 +231,7 @@ class Comunicator:
 					prom = prom // len(listOfServers)
 					print("Promedio del tiempo = ",prom)
 					TMSG = "CTM " + str(prom)
-					hora = toTime(prom)
+					#hora = toTime(prom)
 					"""sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
 					mycursor.execute(sqlformula,(hora,))
 					mydb.commit()"""
@@ -243,11 +248,11 @@ class Comunicator:
 		#print(listServswithPrio)
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 		sock.bind((HOST , ELECPORT))
-		sock.settimeout(4)
+		sock.settimeout(7)
 		while True:
 			if(self.MasterStatus == True and self.ElectionStatus == False):#Si somos coordinador de tiempo mandamos pulsos a todos
 				print("Soy Coordinador")
-				sock.settimeout(2)#Si no responden en 2 s, no nos importa, continuamos mandando pulsos a los demas
+				sock.settimeout(3)#Si no responden en 2 s, no nos importa, continuamos mandando pulsos a los demas
 				for x in range(0,len(listServswithPrio)):
 					if ( HOST != listServswithPrio[x][0]):
 						#print("Mandando Latido a: " + listServswithPrio[x][0])
@@ -468,6 +473,9 @@ class Comunicator:
 						clk1.clk.setTimeFromNumber(int(cmdArgs[1]))#Ajustar reloj
 				except socket.timeout as e:
 					print("Timeout in listentime")
+					continue
+				except IndexError:
+					print("No data received")
 					continue
 			elif( self.MasterStatus == True and self.ElectionStatus == False):
 				try:
