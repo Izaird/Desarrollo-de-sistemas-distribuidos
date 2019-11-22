@@ -218,10 +218,10 @@ class Comunicator:
 					sock.sendto(b'GTM',(listServswithPrio[x][0],TIMEPORT))
 					try:
 						data , addr = sock.recvfrom(100)
-						data = data.decode('utf-8').split()
+						data = data.decode('utf-8')
 						print("RECIBIDO en TIMESOCK: ",data)
 						print("Remitente: ", addr)
-						horaSol = int(data[1])
+						horaSol = int(data)
 						#print(horaSol)
 						dif = abs(horaSol - int( clk1.clk.getTimeToNumber() ) )
 						if (dif <=2200):

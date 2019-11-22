@@ -27,7 +27,7 @@ while True:
         print(cmdArgs)
         if(cmdArgs[0] == "GTM"): #si llega este mensaje
             #msg = str(clk1.clk.getTimeToNumber())#Mandar hora
-            msg = "CTM 43665"
+            msg = "43665"
             sock.sendto(msg.encode('utf-8'),(addr))
         elif(cmdArgs[0] == "CTM"):#Si llega este mensaje
             print("Hora recibida  ",cmdArgs[1] )
