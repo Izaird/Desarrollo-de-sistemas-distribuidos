@@ -1,6 +1,6 @@
 from tkinter import *
 import tkinter as tk
-from datetime import datetime
+import datetime
 import random
 from time import sleep
 import threading
@@ -18,7 +18,7 @@ PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 BCKPORT = 65433        # Port to listen on (non-privileged ports are > 1023)
 TIMEPORT = 60900
 ELECPORT = 30400
-now = datetime.now() # Fecha y hora actuales
+now = datetime.datetime.now() # Fecha y hora actuales
 random.seed(99)
 
 mydb = mysql.connector.connect(
@@ -82,10 +82,11 @@ class clock:	#Clase Reloj
 	def getTimeToNumber(self):
 		return self.h*3600+self.m*60+self.s
 	def setTimeFromNumber(self,num):
+		print(num)
 		x = self.getTimeToNumber()
 		print("Hora actual en s: ",x)
 		print("Hora recibida en s: ", num)
-		if int(num) <= int(x):
+		if num <= x:
 			x -= num
 			self.secTimer = 3
 			sleep(2*x)
@@ -95,9 +96,9 @@ class clock:	#Clase Reloj
 			horas = str(datetime.timedelta(seconds=int(num)))
 			print(horas)
 			horas.split(':')
-			self.h = h[0]
-			self.m = h[1]
-			self.s = h[2]
+			self.h = horas[0]
+			self.m = horas[1]
+			self.s = horas[2]
 
 
 
@@ -217,7 +218,8 @@ class Comunicator:
 					sock.sendto(b'GTM',(listServswithPrio[x][0],TIMEPORT))
 					try:
 						data , addr = sock.recvfrom(100)
-						horaSol = int(data.decode('utf-8'))
+						data=data.decode('utf-8').split()
+						horaSol = int(data[1])
 						dif = abs(horaSol - int( clk1.clk.getTimeToNumber() ) )
 						if (dif <=2200):
 							prom += int(data.decode('utf-8'))
@@ -470,6 +472,7 @@ class Comunicator:
 						msg = str(clk1.clk.getTimeToNumber())#Mandar hora
 						sock.sendto(msg.encode('utf-8'),(addr))
 					elif(cmdArgs[0] == "CTM"):#Si llega este mensaje
+						print("Hora recibida  ",cmdArgs[1] )
 						clk1.clk.setTimeFromNumber(int(cmdArgs[1]))#Ajustar reloj
 				except socket.timeout as e:
 					print("Timeout in listentime")
