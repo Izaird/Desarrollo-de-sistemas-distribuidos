@@ -31,7 +31,7 @@ mycursor = mydb.cursor()
 sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
 
 listOfServers = ['192.168.0.15']
-listServswithPrio = [ [HOST, 5], ['192.168.43.167', 10],['127.0.0.1', 1]]
+listServswithPrio = [ [HOST, 5], ['192.168.0.100', 10],['127.0.0.1', 1]]
 listServswithPrio=sorted(listServswithPrio, key= lambda x: x[1], reverse= True)#Ordenar lista por prioridad
 print("Lista de servidores ordenados por prioridad: ")
 print(listServswithPrio)
@@ -86,7 +86,7 @@ class clock:	#Clase Reloj
 		x = self.getTimeToNumber()
 		print("Hora actual en s: ",x)
 		print("Hora recibida en s: ", num)
-		if num <= x:
+		if num <= int(x):
 			x -= num
 			self.secTimer = 3
 			sleep(2*x)
@@ -218,27 +218,33 @@ class Comunicator:
 					sock.sendto(b'GTM',(listServswithPrio[x][0],TIMEPORT))
 					try:
 						data , addr = sock.recvfrom(100)
-						data=data.decode('utf-8').split()
+						data = data.decode('utf-8').split()
+						print("RECIBIDO en TIMESOCK: ",data)
+						print("Remitente: ", addr)
 						horaSol = int(data[1])
+						#print(horaSol)
 						dif = abs(horaSol - int( clk1.clk.getTimeToNumber() ) )
 						if (dif <=2200):
-							prom += int(data.decode('utf-8'))
+							prom += horaSol
+							print("Diferncia dentro del rango aceptado")
 						else:
 							prom += int( clk1.clk.getTimeToNumber())
+							print("Diferncia muy grande descartando hora recibida y promediando con reloj local")
 						print(prom)
 					except socket.timeout as e:
 						#print(e)
 						prom += int( clk1.clk.getTimeToNumber())
 						continue
-					prom = prom // len(listOfServers)
-					print("Promedio del tiempo = ",prom)
+					prom = prom // (len(listServswithPrio)-1)
+					print("Promedio del tiempo s = ",prom)
+					print("Promedio del tiempo hh min segs = ",datetime.timedelta(seconds = int(prom) ) )
 					TMSG = "CTM " + str(prom)
 					#hora = toTime(prom)
 					"""sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
 					mycursor.execute(sqlformula,(hora,))
 					mydb.commit()"""
 			for j in range(0,len(listServswithPrio)):
-				if (HOST != listServswithPrio[x][0] ):
+				if (HOST != listServswithPrio[j][0] ):
 					print("Mandando ajuste a: "+listServswithPrio[j][0])
 					print("Promedio    ", prom)
 					sock.sendto(TMSG.encode('utf-8'),(listServswithPrio[j][0],TIMEPORT))
