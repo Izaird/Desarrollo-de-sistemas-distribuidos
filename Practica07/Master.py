@@ -21,7 +21,7 @@ class Master:
 		isOneEnable = self.cordinador.mapListOfServers()
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 		sock.bind((self.IP , self.PORT))
-		sock.settimeout(1.0)
+		sock.settimeout(3.0)
 		if(isOneEnable == "-1"):
 			self.cordinador.cordinadorIP = self.IP
 		else:
@@ -35,11 +35,12 @@ class Master:
 				break
 			print("I am not the cordinator")
 			try:
+				print(self.cordinador.cordinadorIP)
 				sock.sendto(b"AYE" ,(self.cordinador.cordinadorIP,self.cordinador.PORT))
 				data , addr = sock.recvfrom(100)
 				msg = data.decode('utf-8').split()
 				if(msg[0] == "YBR"):
-					sleep(100.0)
+					sleep(10.0)
 			except socket.timeout as ex:
 				self.cordinador.Eleccion()
 	
@@ -162,24 +163,25 @@ class Cordinador:
 			conn.send(b'Envio Completado')
 			conn.close()
 
-			with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-				for i in range (2,250):
-					block = 0
-					if(self.listOfServers[i] == "-1" or self.listOfServers[i] == self.IP):
-						continue
-					s.connect((self.listOfServers[i], 65432))
-					#time.sleep(0.001)
+		
+			for i in range (2,250):
+				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				block = 0
+				if(self.listOfServers[i] == "-1" or self.listOfServers[i] == self.IP):
+					continue
+				s.connect((self.listOfServers[i], 65432))
+				#time.sleep(0.001)
+				print("Enviando...")
+				l = listofData[block*1024:block*1024+1023]
+				while (l):
+					block += 1
 					print("Enviando...")
+					s.send(l)
 					l = listofData[block*1024:block*1024+1023]
-					while (l):
-						block += 1
-						print("Enviando...")
-						s.send(l)
-						l = listofData[block*1024:block*1024+1023]
-					print("Envio Completado")
-					print (s.recv(1024))
-					s.close
-				s.shutdown(socket.SHUT_WR)
+				print("Envio Completado")
+				print (s.recv(1024))
+				s.close
+			s.shutdown(socket.SHUT_WR)
 
 	def getIpIndex(self , IP):
 		dominios = IP.split('.')
@@ -245,6 +247,6 @@ class Sincronizador:
 			try:
 				print("Consulta")
 				self.makeAjust(sock,listOfServers,IP)
-				sleep(200.0)
+				sleep(10.0)
 			except KeyboardInterrupt as k:
 				break
