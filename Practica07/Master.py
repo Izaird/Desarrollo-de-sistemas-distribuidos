@@ -18,23 +18,31 @@ class Master:
 
 	def Run(self):
 		print("Master isRunning")
-		flag = True
+		Flag = True
+		print("Running mapOfServers")
 		isOneEnable = self.cordinador.mapListOfServers()
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 		sock.bind((self.IP , self.PORT))
-		sock.settimeout(3.0)
+		sock.settimeout(1.0)
+		print("Calling for cordinator")		
 		if(isOneEnable == "-1"):
 			self.cordinador.cordinadorIP = self.IP
 		else:
 			while Flag:
-				try:
-					sock.sendto(b'GMC' ,(isOneEnable,self.cordinador.PORT))
-					data , addr = sock.recvfrom(100)
-					self.cordinador.cordinadorIP = data.decode('utf-8')
-					if(self.cordinadorIP != "-1")
-						flag = False
-				except socket.timeout as ex:
-					pass
+				for i in range(254):
+				#	print("Who is cordinator. %d  -> %s" % (i , self.listOfServers[i]))
+					if(self.listOfServers[i] == "-1"):
+						continue
+					try:
+						sock.sendto(b'GMC' ,(self.listOfServers[i],self.cordinador.PORT))
+						data , addr = sock.recvfrom(100)
+						self.cordinador.cordinadorIP = data.decode('utf-8')
+					#	print("LLego esto %s " % self.cordinador.cordinadorIP)
+						if(self.cordinador.cordinadorIP != "-1"):
+							Flag = False
+					except socket.timeout as ex:
+				#		print("NRL")
+						pass
 				
 
 		while not self.isCordinator:
@@ -106,22 +114,25 @@ class Cordinador:
 		dominios = self.IP.split('.')
 		AuxIp = dominios[0] + '.' + dominios[1] + '.' + dominios[2] + '.'
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
-		sock.settimeout(0.05)
-		someOneEnable = "-1"
+		sock.settimeout(0.1)
+		isOneEnable = "-1"
 		for i in range(2,254):
+		#	sleep(0.01)
 			if(AuxIp + str(i) == self.IP):
 				continue
 			try:
+			#	print(AuxIp + str(i))
 				sock.sendto(b'AYE',(AuxIp + str(i) , self.PORT))
 				data , addr = sock.recvfrom(100)
 				msg = data.decode('utf-8').split()
 				if(msg[0] == "YBR"):
+					isOneEnable = "1"
+			#		print("Si toy %s" % (AuxIp + str(i)))
 					self.listOfServers[i] = AuxIp + str(i)
-					someOneEnable = AuxIp + str(i)
 			except socket.timeout as ex:
 				self.listOfServers[i] = "-1"
 		sock.close()
-		return someOneEnable
+		return isOneEnable
 
 	def cordinadorListener(self):
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
