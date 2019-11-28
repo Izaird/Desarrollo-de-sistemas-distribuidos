@@ -40,13 +40,13 @@ class Front:
             #time.sleep(0.001)
             archivo = open(file2open, "rb")
             print("Enviando...")
-            l = archivo.read(1024)
+            l = archivo.read(4294967296)
             while (l):
                 print("Enviando...")
                 s.send(l)
-                l = archivo.read(1024)
+                l = archivo.read(4294967296)
             print("Envio Completado")
-            print (s.recv(1024))
+            print (s.recv(4294967296))
             s.shutdown(socket.SHUT_WR)
             s.close
 
@@ -65,13 +65,13 @@ class Front:
                 #time.sleep(0.001)
                 archivo.seek(0)
                 print("Enviando...")
-                l = archivo.read(1024)
+                l = archivo.read(4294967296)
                 while (l):
                     print("Enviando...")
                     s.send(l)
-                    l = archivo.read(1024)
+                    l = archivo.read(4294967296)
                 archivo.close()
                 print("Envio Completado")
-                print (s.recv(1024))
+                print (s.recv(4294967296))
                 s.shutdown(socket.SHUT_WR)
                 s.close
