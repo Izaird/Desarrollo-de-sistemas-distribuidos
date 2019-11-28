@@ -18,6 +18,7 @@ class Master:
 
 	def Run(self):
 		print("Master isRunning")
+		flag = True
 		isOneEnable = self.cordinador.mapListOfServers()
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 		sock.bind((self.IP , self.PORT))
@@ -25,9 +26,16 @@ class Master:
 		if(isOneEnable == "-1"):
 			self.cordinador.cordinadorIP = self.IP
 		else:
-			sock.sendto(b'GMC' ,(isOneEnable,self.cordinador.PORT))
-			data , addr = sock.recvfrom(100)
-			self.cordinador.cordinadorIP = data.decode('utf-8')
+			while Flag:
+				try:
+					sock.sendto(b'GMC' ,(isOneEnable,self.cordinador.PORT))
+					data , addr = sock.recvfrom(100)
+					self.cordinador.cordinadorIP = data.decode('utf-8')
+					if(self.cordinadorIP != "-1")
+						flag = False
+				except socket.timeout as ex:
+					pass
+				
 
 		while not self.isCordinator:
 			if(self.cordinador.cordinadorIP == self.IP):
