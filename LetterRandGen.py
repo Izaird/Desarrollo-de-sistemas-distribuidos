@@ -12,7 +12,7 @@ for j in range(0 , n_archivos ):
             line = random.choice(string.ascii_lowercase)
             randfile[j].write(line)
         else:
-            line = random.choice(string.ascii_lowercase) + ","
+            line = random.choice(string.ascii_lowercase)
             randfile[j].write(line)
     #print(line)
 for j in range(0 , n_archivos ):

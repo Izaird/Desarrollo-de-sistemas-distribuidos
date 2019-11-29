@@ -64,9 +64,14 @@ class GUIClock:		#La GUI del reloj estara definida en esta clase
         #win.title("Window")
         self.total = 0
         self.lbl = Label(win, text="%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
+        self.Freq = [0.0]*26
+        self.lbl = Label(win, text="%02d:%02d:%02d" % (self.clk.h , self.clk.m , self.clk.s))
         self.lbl.grid(row = _x , column = _y, columnspan=2)
-        self.lbltotal= Label(win, text="La suma de los elementos recibidos es: %d" %(self.total))
-        self.lbltotal.grid(row=_x+1, column=_y, columnspan=2)
+        self.listlbl = Label(win, text="" )
+        self.listlbl.grid(row = _x+1 , column = _y, columnspan=2)
+        for i in range(0,26):
+            texto = self.listlbl.cget("text") + "%c Freq: %03f\n"%(chr(i+97),self.Freq[i])
+            self.listlbl.config(text = texto)
         self.btn = Button(win, text ="Modificar horas", command = lambda: self.popup_clock_config(win, 0)  )
         self.btn.grid(row = _x+2, column = _y)
         self.btn = Button(win, text ="Modificar minutos", command = lambda: self.popup_clock_config(win, 1)  )
@@ -142,7 +147,7 @@ class Comunicator:
         self.backupEnable = False
         self.addr = ""
         RunListenThread = threading.Thread(target=self.RunSocket , args=(clk1 , HOST , PORT ,))
-        listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, HOST, BCKPORT, ))		
+        listenBCKThread = threading.Thread(target=self.listenBackUp , args=(clk1, HOST, BCKPORT, ))
         turnOnBackUpThread = threading.Thread(target=self.turnOnBackUp , args=(IPBackUp,))
         RunListenThread.setDaemon(True)
         turnOnBackUpThread.setDaemon(True)
@@ -166,7 +171,7 @@ class Comunicator:
                         s.sendto(b"ACKC" , (HOST , BCKPORT))
                 except EnvironmentError as e:
                     pass
-                
+
         sleep(0.01)
 
 
@@ -190,6 +195,18 @@ class Comunicator:
                 args = data.decode('utf-8').split()
                 self.executeSQLInsert(args[0] , args[1] , args[2] , clk1)
 
+    def CalcFreq(self,List,clk1):
+        FreqArr = [None]*26
+        for i in range(0,26):
+            FreqArr[i] = 0
+        for i in range(0, len(List)):
+            aux = ord(List[i])
+            #print(aux - 97)
+            FreqArr[ aux - 97] += 1
+        for i in range(0,26):
+            FreqArr[i] = FreqArr[i]/len(List)
+        clk1.Freq = FreqArr
+        return FreqArr
 
 
     def RunSocket(self,GUIclk, HOST , PORT):
@@ -202,26 +219,22 @@ class Comunicator:
                 print(f"Conection desde {addr} ha sido establecida")
                 conn.send(bytes("Conectado a servidor", "utf-8"))
                 totalData=0
-                l = conn.recv(1024)
-                while (l): #Mientras l reciva algo entrara en este loop
-                    print("Recibiendo...")
-                    print(l)	#Recibiremos una cadena de bytes
-                    #print (type(l))
-                    listofData=l.split(b'\n') #Separamos la cadena de bytes por breaklines
-                    print(listofData)#l ahora es una lista con cadenas de bytes
-                    for i in range(0, len(listofData)):
-                        if ( listofData[i].decode("utf-8")=='' ):
-                            listofData[i]=0
-                        else:
-                            listofData[i] = int(listofData[i].decode("utf-8") ) #se decodifica y castea a entero
-                        totalData = listofData[i]+totalData
-                        print(totalData)
-                    print(listofData)
-                    l = conn.recv(1024)
+                l = conn.recv(4294967296)
+                print("Recibiendo...")
+                listofData=list(l.decode("utf-8")) #Separamos la cadena de bytes por breaklines
+                print(listofData)#l ahora es una lista con cadenas de bytes
+                totalData=(len(listofData))
+                print(totalData)
+                print(listofData)
+                GUIclk.Freq = CalcFreq(listofData,GUIclk)
+                GUIclk.listlbl.config(text = "")
+                for i in range(0,26):
+                    texto = GUIclk.listlbl.cget("text") + "%c Freq: %03f\n"%(chr(i+97), GUIclk.Freq[i])
+                    GUIclk.listlbl.config(text = texto)
                 print("Termine de recibir")
-                conn.send(b'Envio Completado')
-                conn.close()
-                GUIclk.total = totalData
+                #conn.send(b'Envio Completado')
+                #conn.close()
+                #GUIclk.total = totalData
                 hour = str(GUIclk.clk.h).zfill(2) + ":" +str(GUIclk.clk.m).zfill(2)+ ":" +str(GUIclk.clk.s).zfill(2)
                 ip = addr[0]
 
@@ -242,7 +255,7 @@ class Comunicator:
             database="Central"
         )
         mycursor = mydb.cursor()
-        
+
         sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
         outcome =  (totalData, ip, hour)
         mycursor.execute(sqlformula,outcome)
@@ -257,7 +270,7 @@ class Comunicator:
             database="Tiempo"
         )
         mycursor = mydb.cursor()
-        
+
         sqlformula = "INSERT INTO Tiempo (hora) VALUES(\"%s\")"
         mycursor.execute(sqlformula,(hour,))
         mydb.commit()
@@ -281,7 +294,7 @@ class Comunicator:
 #            elif(cmdArgs[0] == "AYC"):
 #                msg = str(clk1.clk.getTimeToNumber())
 #                sock.sendto(msg.encode('utf-8'),(addr))
-                
+
 class Server:
     def __init__(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
