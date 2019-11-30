@@ -166,7 +166,7 @@ class Cordinador:
 					s.listen(4)#Aceptaremos maximo 4 conexiones
 					conn, addr = s.accept() #Aceptar la conexion
 					break
-				except expression as identifier:
+				except socket.timeout as ex:
 					pass	
 			print(f"Conection desde {addr} ha sido establecida")
 			conn.send(bytes("Conectado a servidor", "utf-8"))
@@ -182,31 +182,34 @@ class Cordinador:
 			print("Termine de recibir")
 			conn.send(b'Envio Completado')
 			conn.close()
+			s.close
+			s.shutdown(socket.SHUT_WR)
 
-			sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)		
-			for i in range (2,250):
-				try:
-					sock.sendto(b'AYE' , (self.IPCordinador , self.HostCordPort))
-					ans , addr = sock.recvfrom(100)
-				except socket.timeout as ex:
-					self.listOfServers[i] = "-1"
-				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				block = 0
-				if(self.listOfServers[i] == "-1" or self.listOfServers[i] == self.IP):
-					continue
-				s.connect((self.listOfServers[i], 65432))
-				#time.sleep(0.001)
+		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)		
+		for i in range (2,250):
+			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			block = 0
+			if(self.listOfServers[i] == "-1" or self.listOfServers[i] == self.IP):
+				continue
+			try:
+				sock.sendto(b'AYE' , (self.listOfServers[i] , self.PORT))
+				ans , addr = sock.recvfrom(100)
+			except socket.timeout as ex:
+				self.listOfServers[i] = "-1"
+				continue
+			s.connect((self.listOfServers[i], 65432))
+			#time.sleep(0.001)
+			print("Enviando...")
+			l = listofData[block*4294967296:block*4294967296+4294967295]
+			while (l):
+				block += 1
 				print("Enviando...")
+				s.send(l)
 				l = listofData[block*4294967296:block*4294967296+4294967295]
-				while (l):
-					block += 1
-					print("Enviando...")
-					s.send(l)
-					l = listofData[block*4294967296:block*4294967296+4294967295]
-				print("Envio Completado")
-			#	print (s.recv(4294967296))
-				s.close
-				s.shutdown(socket.SHUT_WR)
+			print("Envio Completado")
+		#	print (s.recv(4294967296))
+			s.close
+			s.shutdown(socket.SHUT_WR)
 
 	def getIpIndex(self , IP):
 		dominios = IP.split('.')
