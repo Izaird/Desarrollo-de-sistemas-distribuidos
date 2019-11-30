@@ -249,7 +249,7 @@ class Comunicator:
         mydb = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="root123",
+            password="root",
             database="Central"
         )
         mycursor = mydb.cursor()
@@ -260,10 +260,10 @@ class Comunicator:
 
         print(DATA)
         sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
-        outcome =  (Data, ip, hour)
+        outcome =  (DATA, ip, hour)
         mycursor.execute(sqlformula,outcome)
         mydb.commit()
-        #GUIclk.lbltotal.config(text = "La suma de los elementos recibidos %d" %int(totalData))
+    #    GUIclk.lbltotal.config(text = "La suma de los elementos recibidos %d" %int(totalData))
 
     def executeSQLInsertH(self, hour):
         mydb = mysql.connector.connect(
