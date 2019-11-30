@@ -203,8 +203,6 @@ class Comunicator:
             aux = ord(List[i])
             #print(aux - 97)
             FreqArr[ aux - 97] += 1
-        for i in range(0,26):
-            FreqArr[i] = FreqArr[i]/len(List)
         clk1.Freq = FreqArr
         return FreqArr
 
@@ -251,7 +249,7 @@ class Comunicator:
         mydb = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="root",
+            password="root123",
             database="Central"
         )
         mycursor = mydb.cursor()
@@ -262,16 +260,16 @@ class Comunicator:
 
         print(DATA)
         sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
-        outcome =  (totalData, ip, hour)
+        outcome =  (Data, ip, hour)
         mycursor.execute(sqlformula,outcome)
         mydb.commit()
-        GUIclk.lbltotal.config(text = "La suma de los elementos recibidos %d" %int(totalData))
+        #GUIclk.lbltotal.config(text = "La suma de los elementos recibidos %d" %int(totalData))
 
     def executeSQLInsertH(self, hour):
         mydb = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="root",
+            password="root123",
             database="Tiempo"
         )
         mycursor = mydb.cursor()
