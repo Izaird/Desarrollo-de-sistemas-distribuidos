@@ -226,7 +226,7 @@ class Comunicator:
                 totalData=(len(listofData))
                 print(totalData)
                 print(listofData)
-                GUIclk.Freq = CalcFreq(listofData,GUIclk)
+                GUIclk.Freq = self.CalcFreq(listofData,GUIclk)
                 GUIclk.listlbl.config(text = "")
                 for i in range(0,26):
                     texto = GUIclk.listlbl.cget("text") + "%c Freq: %03f\n"%(chr(i+97), GUIclk.Freq[i])
@@ -238,7 +238,7 @@ class Comunicator:
                 hour = str(GUIclk.clk.h).zfill(2) + ":" +str(GUIclk.clk.m).zfill(2)+ ":" +str(GUIclk.clk.s).zfill(2)
                 ip = addr[0]
 
-                self.executeSQLInsert(str(totalData) , ip , hour , GUIclk)
+            #    self.executeSQLInsert(str(totalData) , ip , hour , GUIclk)
                 if(self.backupEnable):
                     MGS = str(totalData) + " " + str(ip) + " " + str(hour)
                     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:

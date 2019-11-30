@@ -23,14 +23,14 @@ class Master:
 		isOneEnable = self.cordinador.mapListOfServers()
 		sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
 		sock.bind((self.IP , self.PORT))
-		sock.settimeout(1.0)
+		sock.settimeout(5.0)
 		print("Calling for cordinator")		
 		if(isOneEnable == "-1"):
 			self.cordinador.cordinadorIP = self.IP
 		else:
 			while Flag:
 				for i in range(254):
-				#	print("Who is cordinator. %d  -> %s" % (i , self.listOfServers[i]))
+					print("Who is cordinator. %d  -> %s" % (i , self.listOfServers[i]))
 					if(self.listOfServers[i] == "-1"):
 						continue
 					try:

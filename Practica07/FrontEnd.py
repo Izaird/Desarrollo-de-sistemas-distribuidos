@@ -2,13 +2,13 @@ import socket
 from time import sleep
 
 class Front:
-
+    
     def __init__(self):
         self.IPCordinador = "-1"
-        self.HostName = "192.168.43.40"
+        self.HostName = "192.168.43.167"
         self.HostCordPort = 60430
         self.HostServPort = 65432
-
+    
 
     def getCordinador(self):
         while (self.IPCordinador == "-1"):
@@ -36,6 +36,7 @@ class Front:
                 self.getCordinador()
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print("")
             s.connect((self.IPCordinador, self.HostServPort))
             #time.sleep(0.001)
             archivo = open(file2open, "rb")
@@ -46,16 +47,16 @@ class Front:
                 s.send(l)
                 l = archivo.read(4294967296)
             print("Envio Completado")
-            #print (s.recv(4294967296))
+            print (s.recv(4294967296))
             s.shutdown(socket.SHUT_WR)
             s.close
 
-
+            
             sock.sendto(b'SNA' , (self.IPCordinador , self.HostCordPort))
 
             try:
                 sock.recvfrom(100)
-            except expression as identifier:
+            except socket.timeout as ex:
                 pass
             else:
                 pass
