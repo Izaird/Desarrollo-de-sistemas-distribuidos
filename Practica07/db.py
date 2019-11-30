@@ -28,6 +28,6 @@ mydb2 = mysql.connector.connect(
 mycursor = mydb2.cursor()
 
 
-mycursor.execute("CREATE TABLE IF NOT EXISTS Sumas (resultado VARCHAR(25), ip VARCHAR(25), hora TIME)")
+mycursor.execute("CREATE TABLE IF NOT EXISTS Sumas (resultado VARCHAR(400), ip VARCHAR(25), hora TIME)")
 mycursor.execute("USE Tiempo")
 mycursor.execute("CREATE TABLE IF NOT EXISTS Tiempo (hora varchar(255))")
