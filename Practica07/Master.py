@@ -30,9 +30,9 @@ class Master:
 		else:
 			while Flag:
 				for i in range(254):
-					print("Who is cordinator. %d  -> %s" % (i , self.listOfServers[i]))
 					if(self.listOfServers[i] == "-1"):
 						continue
+					print("Who is cordinator. %d  -> %s" % (i , self.listOfServers[i]))
 					try:
 						sock.sendto(b'GMC' ,(self.listOfServers[i],self.cordinador.PORT))
 						data , addr = sock.recvfrom(100)
@@ -43,7 +43,10 @@ class Master:
 					except socket.timeout as ex:
 				#		print("NRL")
 						pass
-				
+
+		cordListenThread = threading.Thread(target=self.cordinador.cordinadorListener)
+		cordListenThread.setDaemon(True)
+		cordListenThread.start()		
 
 		while not self.isCordinator:
 			if(self.cordinador.cordinadorIP == self.IP):
@@ -73,9 +76,7 @@ class Cordinador:
 		self.IP = IP
 		self.PORT = 60430
 		self.cordinadorIP = "-1"
-		cordListenThread = threading.Thread(target=self.cordinadorListener)
-		cordListenThread.setDaemon(True)
-		cordListenThread.start()
+		
 #	def findEnableServers():
 #		print("Declare subNet")
 #		IPx = input()
@@ -170,14 +171,14 @@ class Cordinador:
 			print(f"Conection desde {addr} ha sido establecida")
 			conn.send(bytes("Conectado a servidor", "utf-8"))
 			totalData=0
-			l = conn.recv(1024)
+			l = conn.recv(4294967296)
 			while (l): #Mientras l reciva algo entrara en este loop
 				print("Recibiendo...")
-				print(l)	#Recibiremos una cadena de bytes
+			#	print(l)	#Recibiremos una cadena de bytes
 				#print (type(l))
 				listofData += l
-				print(listofData)
-				l = conn.recv(1024)
+			#	print(listofData)
+				l = conn.recv(4294967296)
 			print("Termine de recibir")
 			conn.send(b'Envio Completado')
 			conn.close()
@@ -191,16 +192,16 @@ class Cordinador:
 				s.connect((self.listOfServers[i], 65432))
 				#time.sleep(0.001)
 				print("Enviando...")
-				l = listofData[block*1024:block*1024+1023]
+				l = listofData[block*4294967296:block*4294967296+4294967295]
 				while (l):
 					block += 1
 					print("Enviando...")
 					s.send(l)
-					l = listofData[block*1024:block*1024+1023]
+					l = listofData[block*4294967296:block*4294967296+4294967295]
 				print("Envio Completado")
-				print (s.recv(1024))
+			#	print (s.recv(4294967296))
 				s.close
-			s.shutdown(socket.SHUT_WR)
+				s.shutdown(socket.SHUT_WR)
 
 	def getIpIndex(self , IP):
 		dominios = IP.split('.')
