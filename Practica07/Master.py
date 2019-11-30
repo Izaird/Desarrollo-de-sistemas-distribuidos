@@ -183,8 +183,13 @@ class Cordinador:
 			conn.send(b'Envio Completado')
 			conn.close()
 
-		
+			sock = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)		
 			for i in range (2,250):
+				try:
+					sock.sendto(b'AYE' , (self.IPCordinador , self.HostCordPort))
+					ans , addr = sock.recvfrom(100)
+				except socket.timeout as ex:
+					self.listOfServers[i] = "-1"
 				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				block = 0
 				if(self.listOfServers[i] == "-1" or self.listOfServers[i] == self.IP):
