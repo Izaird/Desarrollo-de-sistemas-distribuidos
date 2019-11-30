@@ -222,10 +222,10 @@ class Comunicator:
                 l = conn.recv(4294967296)
                 print("Recibiendo...")
                 listofData=list(l.decode("utf-8")) #Separamos la cadena de bytes por breaklines
-                print(listofData)#l ahora es una lista con cadenas de bytes
+            #    print(listofData)#l ahora es una lista con cadenas de bytes
                 totalData=(len(listofData))
-                print(totalData)
-                print(listofData)
+            #    print(totalData)
+            #    print(listofData)
                 GUIclk.Freq = self.CalcFreq(listofData,GUIclk)
                 GUIclk.listlbl.config(text = "")
                 for i in range(0,26):
@@ -238,7 +238,7 @@ class Comunicator:
                 hour = str(GUIclk.clk.h).zfill(2) + ":" +str(GUIclk.clk.m).zfill(2)+ ":" +str(GUIclk.clk.s).zfill(2)
                 ip = addr[0]
 
-            #    self.executeSQLInsert(str(totalData) , ip , hour , GUIclk)
+                self.executeSQLInsert(GUIclk.Freq , ip , hour , GUIclk)
                 if(self.backupEnable):
                     MGS = str(totalData) + " " + str(ip) + " " + str(hour)
                     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -255,7 +255,12 @@ class Comunicator:
             database="Central"
         )
         mycursor = mydb.cursor()
+    #    print(totalData)
+        DATA = ""
+        for i in range(26):
+            DATA += str(chr(i + 97)) + "-" + str(totalData[i]) + ","
 
+        print(DATA)
         sqlformula = "INSERT INTO Sumas (resultado, ip, hora) VALUES(%s,%s,%s)"
         outcome =  (totalData, ip, hour)
         mycursor.execute(sqlformula,outcome)
