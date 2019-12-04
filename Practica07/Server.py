@@ -45,17 +45,17 @@ class clock:	#Clase Reloj
         return self.h*10000+self.m*100+self.s
     def setTimeFromNumber(self,num):
         x = self.getTimeToNumber()
-        if x <= num:
-            self.h = num//10000
-            num -= self.h*10000
-            self.m = num//100
-            num -= self.m*100
-            self.s = num
-        else:
+        #if x <= num:
+        self.h = num//10000
+        num -= self.h*10000
+        self.m = num//100
+        num -= self.m*100
+        self.s = num
+        """else:
             x -= num
             self.secTimer = 2.0
             sleep(2*x)
-            self.secTimer = 1
+            self.secTimer = 1"""
 
 
 class GUIClock:		#La GUI del reloj estara definida en esta clase
@@ -196,13 +196,14 @@ class Comunicator:
                 self.executeSQLInsert(args[0] , args[1] , args[2] , clk1)
 
     def CalcFreq(self,List,clk1):
-        FreqArr = [None]*26
+        FreqArr = [0]*26
         for i in range(0,26):
             FreqArr[i] = 0
         for i in range(0, len(List)):
             aux = ord(List[i])
             #print(aux - 97)
-            FreqArr[ aux - 97] += 1
+            if aux>=97:
+                FreqArr[ aux - 97] += 1
         clk1.Freq = FreqArr
         return FreqArr
 
@@ -249,7 +250,7 @@ class Comunicator:
         mydb = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="root",
+            password="root123",
             database="Central"
         )
         mycursor = mydb.cursor()
